@@ -3,7 +3,6 @@ defmodule Jinks.Game do
 
   defmodule State do
     defstruct players: [],
-              game_state: :needsPlayers,
               manager_pid: nil,
               looking_for_players: nil,
               game_state: nil
