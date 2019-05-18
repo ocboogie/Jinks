@@ -25,14 +25,16 @@ defmodule Jinks.GameTest do
     assert_receive {:"$gen_cast", {:player_left, player2}}
   end
 
-  test "Broadcast game starting", %{game_pid: game_pid} = _context do
-    player1 = %Player{pid: self(), name: "1"}
-    player2 = %Player{pid: spawn(fn -> Process.sleep(:infinity) end), name: "2"}
+  test "Games should stop when last player leaves", %{game_pid: game_pid} = _context do
+    player_pid = spawn(fn -> Process.sleep(:infinity) end)
 
-    Game.player_join(game_pid, player1)
-    Game.player_join(game_pid, player2)
+    Game.player_join(game_pid, %Player{pid: player_pid, name: "1"})
 
-    assert_receive {:"$gen_cast", {:game_started, _starting_word}}
+    ref = Process.monitor(game_pid)
+
+    Process.exit(player_pid, :kill)
+
+    assert_receive {:DOWN, ^ref, :process, _, :normal}, 500
   end
 
   test "Report looking for players and game being full to manager pid",
@@ -53,15 +55,13 @@ defmodule Jinks.GameTest do
     assert_receive {:"$gen_cast", {:open_game, game_pid}}
   end
 
-  test "Games should stop when last player leaves", %{game_pid: game_pid} = _context do
-    player_pid = spawn(fn -> Process.sleep(:infinity) end)
+  test "Broadcast game starting", %{game_pid: game_pid} = _context do
+    player1 = %Player{pid: self(), name: "1"}
+    player2 = %Player{pid: spawn(fn -> Process.sleep(:infinity) end), name: "2"}
 
-    Game.player_join(game_pid, %Player{pid: player_pid, name: "1"})
+    Game.player_join(game_pid, player1)
+    Game.player_join(game_pid, player2)
 
-    ref = Process.monitor(game_pid)
-
-    Process.exit(player_pid, :kill)
-
-    assert_receive {:DOWN, ^ref, :process, _, :normal}, 500
+    assert_receive {:"$gen_cast", {:game_started, _starting_word}}
   end
 end
