@@ -1,6 +1,7 @@
 defmodule Jinks.GameTest do
   use ExUnit.Case
   alias Jinks.Game
+  alias Jinks.Player
   doctest Jinks
 
   setup do
@@ -13,8 +14,8 @@ defmodule Jinks.GameTest do
     player1_pid = self()
     player2_pid = spawn(fn -> Process.sleep(:infinity) end)
 
-    player1 = %{pid: player1_pid}
-    player2 = %{pid: player2_pid}
+    player1 = %Player{pid: player1_pid, name: "1"}
+    player2 = %Player{pid: player2_pid, name: "2"}
 
     Game.player_join(game_pid, player1)
     Game.player_join(game_pid, player2)
@@ -25,8 +26,8 @@ defmodule Jinks.GameTest do
   end
 
   test "Broadcast game starting", %{game_pid: game_pid} = _context do
-    player1 = %{pid: self()}
-    player2 = %{pid: spawn(fn -> Process.sleep(:infinity) end)}
+    player1 = %Player{pid: self(), name: "1"}
+    player2 = %Player{pid: spawn(fn -> Process.sleep(:infinity) end), name: "2"}
 
     Game.player_join(game_pid, player1)
     Game.player_join(game_pid, player2)
@@ -39,8 +40,8 @@ defmodule Jinks.GameTest do
     player1_pid = spawn(fn -> Process.sleep(:infinity) end)
     player2_pid = spawn(fn -> Process.sleep(:infinity) end)
 
-    player1 = %{pid: player1_pid}
-    player2 = %{pid: player2_pid}
+    player1 = %Player{pid: player1_pid, name: "1"}
+    player2 = %Player{pid: player2_pid, name: "2"}
 
     Game.player_join(game_pid, player1)
     Game.player_join(game_pid, player2)
@@ -55,7 +56,7 @@ defmodule Jinks.GameTest do
   test "Games should stop when last player leaves", %{game_pid: game_pid} = _context do
     player_pid = spawn(fn -> Process.sleep(:infinity) end)
 
-    Game.player_join(game_pid, %{pid: player_pid})
+    Game.player_join(game_pid, %Player{pid: player_pid, name: "1"})
 
     ref = Process.monitor(game_pid)
 

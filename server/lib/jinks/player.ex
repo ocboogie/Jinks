@@ -1,5 +1,5 @@
 defmodule Jinks.Player do
-  # def player_left(pid, player_leaving) do
-  #   {:player_left, player_leaving}
-  # end
+  @enforce_keys [:name]
+
+  defstruct [:name, :pid]
 end
