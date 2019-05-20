@@ -70,11 +70,16 @@ defmodule Jinks.Game do
   def handle_call({:player_join, player}, _from, state) do
     ref = Process.monitor(player.pid)
 
+    player =
+      Map.put(player, :ref, ref)
+      # Give players a id because the front end shouldn't deal with pids
+      |> Map.put(:id, :erlang.unique_integer())
+
     state =
-      %{state | players: [Map.put(player, :ref, ref) | state.players]}
+      %{state | players: [player | state.players]}
       |> report_event({:player_join, player})
 
-    {:reply, nil, state}
+    {:reply, player.id, state}
   end
 
   @impl true
