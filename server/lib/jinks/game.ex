@@ -83,6 +83,11 @@ defmodule Jinks.Game do
   end
 
   @impl true
+  def handle_cast(unknown, state) do
+    {:noreply, report_event(state, unknown)}
+  end
+
+  @impl true
   def handle_info({:DOWN, ref, :process, _object, _reason}, state) do
     player = Enum.find(state.players, &(&1.ref == ref))
 
