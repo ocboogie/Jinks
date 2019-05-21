@@ -79,4 +79,42 @@ defmodule Jinks.GameTest do
 
     assert_receive {:"$gen_cast", {:player_chose_word, player2_id, "foo"}}
   end
+
+  test "broadcast if won and new word when all players have chosen their word",
+       %{game_pid: game_pid} = _context do
+    player1_pid = self()
+    player2_pid = spawn(fn -> Process.sleep(:infinity) end)
+
+    player1 = Player.new("1", player1_pid)
+    player2 = Player.new("2", player2_pid)
+
+    player1_id = player1.id
+    player2_id = player2.id
+
+    Game.player_join(game_pid, player1)
+    Game.player_join(game_pid, player2)
+
+    Game.player_chose_word(game_pid, player1.id, "foo")
+    Game.player_chose_word(game_pid, player2.id, "bar")
+
+    assert_receive {:"$gen_cast",
+                    {:round_finished,
+                     %{
+                       players_words: %{^player1_id => "foo", ^player2_id => "bar"},
+                       won: false,
+                       new_word: new_word
+                     }}}
+                   when new_word not in ["foo", "bar"] and new_word != nil
+
+    Game.player_chose_word(game_pid, player1.id, "baz")
+    Game.player_chose_word(game_pid, player2.id, "baz")
+
+    assert_receive {:"$gen_cast",
+                    {:round_finished,
+                     %{
+                       players_words: %{^player1_id => "baz", ^player2_id => "baz"},
+                       won: true,
+                       new_word: "baz"
+                     }}}
+  end
 end
