@@ -5,7 +5,7 @@ defmodule Jinks.Game do
     defstruct players: [],
               manager_pid: nil,
               looking_for_players: nil,
-              game_state: nil
+              behavior_state: nil
   end
 
   def start_link(init_state \\ %State{}) do
@@ -42,26 +42,26 @@ defmodule Jinks.Game do
   end
 
   defp report_event(state, event) do
-    case state.game_state.__struct__.handle_event(event, state) do
-      {:change_state, new_game_state, new_state} ->
-        change_game_state(new_state, new_game_state)
+    case state.behavior_state.__struct__.handle_event(event, state) do
+      {:change_behavior, new_game_behavior, new_state} ->
+        change_game_behavior(new_state, new_game_behavior)
 
-      {:no_change, state} ->
+      {:keep_behavior, state} ->
         state
     end
   end
 
-  defp change_game_state(state, game_state) do
-    {state, game_state} = game_state.init(state)
+  defp change_game_behavior(state, behavior) do
+    {state, behavior_state} = behavior.init(state)
 
-    new_state = %{state | game_state: game_state}
+    new_state = %{state | behavior_state: behavior_state}
 
     new_state
   end
 
   @impl true
   def init(init_state) do
-    state = change_game_state(init_state, Jinks.GameState.Lobby)
+    state = change_game_behavior(init_state, Jinks.GameBehavior.Lobby)
 
     {:ok, state}
   end

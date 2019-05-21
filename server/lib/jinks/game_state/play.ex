@@ -1,7 +1,7 @@
-defmodule Jinks.GameState.Play do
+defmodule Jinks.GameBehavior.Play do
   alias Jinks.Game
-  alias Jinks.GameState
-  @behaviour GameState
+  alias Jinks.GameBehavior
+  @behaviour GameBehavior
 
   defmodule PlayerInfo do
     defstruct score: 0, word: nil
@@ -9,7 +9,7 @@ defmodule Jinks.GameState.Play do
 
   defstruct player_info: %{}, current_word: "Hello"
 
-  @impl GameState
+  @impl GameBehavior
   def init(state) do
     player_info =
       Enum.map(state.players, fn player -> {player.id, %PlayerInfo{}} end)
@@ -22,12 +22,12 @@ defmodule Jinks.GameState.Play do
     {Game.close_game(state), play_state}
   end
 
-  @impl GameState
+  @impl GameBehavior
   def handle_event({:player_left, _player}, state) do
     if length(state.players) < 2 do
-      {:change_state, Jinks.GameState.Lobby, state}
+      {:change_behavior, Jinks.GameBehavior.Lobby, state}
     else
-      {:no_change, state}
+      {:keep_behavior, state}
     end
   end
 end

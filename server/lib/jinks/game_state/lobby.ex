@@ -1,21 +1,21 @@
-defmodule Jinks.GameState.Lobby do
+defmodule Jinks.GameBehavior.Lobby do
   alias Jinks.Game
-  alias Jinks.GameState
-  @behaviour GameState
+  alias Jinks.GameBehavior
+  @behaviour GameBehavior
 
   defstruct([])
 
-  @impl GameState
+  @impl GameBehavior
   def init(state) do
     {Game.open_game(state), %__MODULE__{}}
   end
 
-  @impl GameState
+  @impl GameBehavior
   def handle_event({:player_join, _player}, state) do
     if length(state.players) >= 2 do
-      {:change_state, Jinks.GameState.Play, state}
+      {:change_behavior, Jinks.GameBehavior.Play, state}
     else
-      {:no_change, state}
+      {:keep_behavior, state}
     end
   end
 end
