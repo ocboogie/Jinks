@@ -3,6 +3,7 @@ defmodule Jinks.GameManagerTest do
   alias Jinks.GameManager
   alias Jinks.GamePool
   alias Jinks.Game
+  alias Jinks.Player
   doctest Jinks
 
   setup do
@@ -18,8 +19,11 @@ defmodule Jinks.GameManagerTest do
   test "Finds available games" do
     closed_game_pid = GameManager.create_game()
 
-    Game.player_join(closed_game_pid, %{pid: spawn(fn -> Process.sleep(:infinity) end)})
-    Game.player_join(closed_game_pid, %{pid: spawn(fn -> Process.sleep(:infinity) end)})
+    player1_pid = spawn(fn -> Process.sleep(:infinity) end)
+    player2_pid = spawn(fn -> Process.sleep(:infinity) end)
+
+    Game.player_join(closed_game_pid, Player.new("1", player1_pid))
+    Game.player_join(closed_game_pid, Player.new("2", player1_pid))
 
     open_game_pid = GameManager.create_game()
 
@@ -31,11 +35,14 @@ defmodule Jinks.GameManagerTest do
 
     assert is_pid(game_pid)
 
-    Game.player_join(game_pid, %{pid: spawn(fn -> Process.sleep(:infinity) end)})
+    player1_pid = spawn(fn -> Process.sleep(:infinity) end)
+    player2_pid = spawn(fn -> Process.sleep(:infinity) end)
+
+    Game.player_join(game_pid, Player.new("1", player1_pid))
 
     assert GameManager.matchmake() == game_pid
 
-    Game.player_join(game_pid, %{pid: spawn(fn -> Process.sleep(:infinity) end)})
+    Game.player_join(game_pid, Player.new("2", player2_pid))
 
     assert GameManager.matchmake() != game_pid
   end
@@ -45,7 +52,7 @@ defmodule Jinks.GameManagerTest do
 
     player_pid = spawn(fn -> Process.sleep(:infinity) end)
 
-    Game.player_join(game_pid, %{pid: player_pid})
+    Game.player_join(game_pid, Player.new("1", player_pid))
 
     Process.exit(player_pid, :kill)
 
