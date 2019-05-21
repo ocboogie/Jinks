@@ -2,10 +2,14 @@ defmodule Jinks.Game do
   use GenServer
 
   defmodule State do
-    defstruct players: [],
-              manager_pid: nil,
-              looking_for_players: nil,
-              behavior_state: nil
+    use TypedStruct
+
+    typedstruct do
+      field(:players, list(Jink.Player.t()), default: [])
+      field(:manager_pid, pid)
+      field(:looking_for_players, boolean())
+      field(:behavior_state, term())
+    end
   end
 
   def start_link(init_state \\ %State{}) do

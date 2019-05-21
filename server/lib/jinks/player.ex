@@ -1,7 +1,11 @@
 defmodule Jinks.Player do
-  @enforce_keys [:name, :id]
+  use TypedStruct
 
-  defstruct [:name, :id, :pid]
+  typedstruct do
+    field(:name, String.t(), enforce: true)
+    field(:id, integer, enforce: true)
+    field(:pid, pid)
+  end
 
   def new(name, pid \\ nil) do
     %__MODULE__{name: name, pid: pid, id: :erlang.unique_integer()}
