@@ -20,6 +20,10 @@ defmodule Jinks.Game do
     GenServer.call(pid, {:player_join, player})
   end
 
+  def player_chose_word(pid, player_id, word) do
+    GenServer.cast(pid, {:player_chose_word, player_id, word})
+  end
+
   def broadcast_to_players(message, state) do
     Enum.each(state.players, fn player ->
       GenServer.cast(player.pid, message)

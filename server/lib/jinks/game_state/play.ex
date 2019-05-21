@@ -4,6 +4,7 @@ defmodule Jinks.GameBehavior.Play do
   @behaviour GameBehavior
 
   defmodule PlayerInfo do
+    # TODO: Remove score no need
     defstruct score: 0, word: nil
   end
 
@@ -29,5 +30,17 @@ defmodule Jinks.GameBehavior.Play do
     else
       {:keep_behavior, state}
     end
+  end
+
+  @impl GameBehavior
+  def handle_event({:player_chose_word, player_id, word}, state) do
+    state =
+      update_in(state.behavior_state.player_info[player_id], fn player_info ->
+        %{player_info | word: word}
+      end)
+
+    Game.broadcast_to_players({:player_chose_word, player_id, word}, state)
+
+    {:keep_behavior, state}
   end
 end
