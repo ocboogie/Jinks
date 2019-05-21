@@ -10,22 +10,12 @@ defmodule Jinks.GameTest do
     %{game_pid: pid}
   end
 
-  test "players joining return a id", %{game_pid: game_pid} = _context do
-    player1_pid = spawn(fn -> Process.sleep(:infinity) end)
-    player2_pid = spawn(fn -> Process.sleep(:infinity) end)
-
-    player1 = %Player{pid: player1_pid, name: "1"}
-    player2 = %Player{pid: player2_pid, name: "2"}
-
-    assert Game.player_join(game_pid, player1) != Game.player_join(game_pid, player2)
-  end
-
   test "Broadcast players leaving", %{game_pid: game_pid} = _context do
     player1_pid = self()
     player2_pid = spawn(fn -> Process.sleep(:infinity) end)
 
-    player1 = %Player{pid: player1_pid, name: "1"}
-    player2 = %Player{pid: player2_pid, name: "2"}
+    player1 = Player.new("1", player1_pid)
+    player2 = Player.new("2", player2_pid)
 
     Game.player_join(game_pid, player1)
     Game.player_join(game_pid, player2)
@@ -38,7 +28,7 @@ defmodule Jinks.GameTest do
   test "Games should stop when last player leaves", %{game_pid: game_pid} = _context do
     player_pid = spawn(fn -> Process.sleep(:infinity) end)
 
-    Game.player_join(game_pid, %Player{pid: player_pid, name: "1"})
+    Game.player_join(game_pid, Player.new("1", player_pid))
 
     ref = Process.monitor(game_pid)
 
@@ -52,8 +42,8 @@ defmodule Jinks.GameTest do
     player1_pid = spawn(fn -> Process.sleep(:infinity) end)
     player2_pid = spawn(fn -> Process.sleep(:infinity) end)
 
-    player1 = %Player{pid: player1_pid, name: "1"}
-    player2 = %Player{pid: player2_pid, name: "2"}
+    player1 = Player.new("1", player1_pid)
+    player2 = Player.new("2", player2_pid)
 
     Game.player_join(game_pid, player1)
     Game.player_join(game_pid, player2)
@@ -66,8 +56,8 @@ defmodule Jinks.GameTest do
   end
 
   test "Broadcast game starting", %{game_pid: game_pid} = _context do
-    player1 = %Player{pid: self(), name: "1"}
-    player2 = %Player{pid: spawn(fn -> Process.sleep(:infinity) end), name: "2"}
+    player1 = Player.new("1", self())
+    player2 = Player.new("1", spawn(fn -> Process.sleep(:infinity) end))
 
     Game.player_join(game_pid, player1)
     Game.player_join(game_pid, player2)

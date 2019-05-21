@@ -12,7 +12,7 @@ defmodule Jinks.GameState.Play do
   @impl GameState
   def init(state) do
     player_info =
-      Enum.map(state.players, fn player -> {player.pid, %PlayerInfo{}} end)
+      Enum.map(state.players, fn player -> {player.id, %PlayerInfo{}} end)
       |> Map.new()
 
     play_state = %__MODULE__{player_info: player_info}
