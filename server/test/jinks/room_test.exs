@@ -1,74 +1,74 @@
-defmodule Jinks.GameTest do
+defmodule Jinks.RoomTest do
   use ExUnit.Case
-  alias Jinks.Game
+  alias Jinks.Room
   alias Jinks.Player
   doctest Jinks
 
   setup do
-    pid = start_supervised!({Game, %Game.State{manager_pid: self()}})
+    pid = start_supervised!({Room, %Room.State{manager_pid: self()}})
 
-    %{game_pid: pid}
+    %{room_pid: pid}
   end
 
-  test "Games should stop when a player leaves", %{game_pid: game_pid} = _context do
+  test "Rooms should stop when a player leaves", %{room_pid: room_pid} = _context do
     player1_pid = spawn(fn -> Process.sleep(:infinity) end)
     player2_pid = spawn(fn -> Process.sleep(:infinity) end)
 
-    Game.player_join(game_pid, Player.new("1", player1_pid))
-    Game.player_join(game_pid, Player.new("2", player2_pid))
+    Room.player_join(room_pid, Player.new("1", player1_pid))
+    Room.player_join(room_pid, Player.new("2", player2_pid))
 
-    ref = Process.monitor(game_pid)
+    ref = Process.monitor(room_pid)
 
     Process.exit(player2_pid, :kill)
 
     assert_receive {:DOWN, ^ref, :process, _, :normal}, 500
   end
 
-  test "Report looking for players and game being full to manager pid",
-       %{game_pid: game_pid} = _context do
+  test "Report looking for players and room being full to manager pid",
+       %{room_pid: room_pid} = _context do
     player1_pid = spawn(fn -> Process.sleep(:infinity) end)
     player2_pid = spawn(fn -> Process.sleep(:infinity) end)
 
     player1 = Player.new("1", player1_pid)
     player2 = Player.new("2", player2_pid)
 
-    Game.player_join(game_pid, player1)
-    Game.player_join(game_pid, player2)
+    Room.player_join(room_pid, player1)
+    Room.player_join(room_pid, player2)
 
     Process.exit(player2_pid, :kill)
 
-    assert_receive {:"$gen_cast", {:open_game, game_pid}}
-    assert_receive {:"$gen_cast", {:close_game, game_pid}}
-    assert_receive {:"$gen_cast", {:open_game, game_pid}}
+    assert_receive {:"$gen_cast", {:open_room, room_pid}}
+    assert_receive {:"$gen_cast", {:close_room, room_pid}}
+    assert_receive {:"$gen_cast", {:open_room, room_pid}}
   end
 
-  test "Broadcast game starting", %{game_pid: game_pid} = _context do
+  test "Broadcast room starting", %{room_pid: room_pid} = _context do
     player1 = Player.new("1", self())
     player2 = Player.new("1", spawn(fn -> Process.sleep(:infinity) end))
 
-    Game.player_join(game_pid, player1)
-    Game.player_join(game_pid, player2)
+    Room.player_join(room_pid, player1)
+    Room.player_join(room_pid, player2)
 
-    assert_receive {:"$gen_cast", {:game_started, _starting_word}}
+    assert_receive {:"$gen_cast", {:room_started, _starting_word}}
   end
 
-  test "broadcast when a player chooses a word", %{game_pid: game_pid} = _context do
+  test "broadcast when a player chooses a word", %{room_pid: room_pid} = _context do
     player1_pid = self()
     player2_pid = spawn(fn -> Process.sleep(:infinity) end)
 
     player1 = Player.new("1", player1_pid)
     player2 = Player.new("2", player2_pid)
 
-    Game.player_join(game_pid, player1)
-    Game.player_join(game_pid, player2)
+    Room.player_join(room_pid, player1)
+    Room.player_join(room_pid, player2)
 
-    Game.player_chose_word(game_pid, player2.id, "foo")
+    Room.player_chose_word(room_pid, player2.id, "foo")
 
     assert_receive {:"$gen_cast", {:player_chose_word, player2_id, "foo"}}
   end
 
   test "broadcast if won and new word when all players have chosen their word",
-       %{game_pid: game_pid} = _context do
+       %{room_pid: room_pid} = _context do
     player1_pid = self()
     player2_pid = spawn(fn -> Process.sleep(:infinity) end)
 
@@ -78,11 +78,11 @@ defmodule Jinks.GameTest do
     player1_id = player1.id
     player2_id = player2.id
 
-    Game.player_join(game_pid, player1)
-    Game.player_join(game_pid, player2)
+    Room.player_join(room_pid, player1)
+    Room.player_join(room_pid, player2)
 
-    Game.player_chose_word(game_pid, player1.id, "foo")
-    Game.player_chose_word(game_pid, player2.id, "bar")
+    Room.player_chose_word(room_pid, player1.id, "foo")
+    Room.player_chose_word(room_pid, player2.id, "bar")
 
     assert_receive {:"$gen_cast",
                     {:round_finished,
@@ -93,8 +93,8 @@ defmodule Jinks.GameTest do
                      }}}
                    when new_word not in ["foo", "bar"] and new_word != nil
 
-    Game.player_chose_word(game_pid, player1.id, "baz")
-    Game.player_chose_word(game_pid, player2.id, "baz")
+    Room.player_chose_word(room_pid, player1.id, "baz")
+    Room.player_chose_word(room_pid, player2.id, "baz")
 
     assert_receive {:"$gen_cast",
                     {:round_finished,

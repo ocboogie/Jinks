@@ -1,4 +1,4 @@
-defmodule Jinks.Game do
+defmodule Jinks.Room do
   use GenServer
 
   defmodule State do
@@ -31,14 +31,14 @@ defmodule Jinks.Game do
   end
 
   # TODO: Come up with a better name
-  def close_game(state) do
-    report_to_manager({:close_game, self()}, state)
+  def close_room(state) do
+    report_to_manager({:close_room, self()}, state)
 
     %{state | looking_for_players: false}
   end
 
-  def open_game(state) do
-    report_to_manager({:open_game, self()}, state)
+  def open_room(state) do
+    report_to_manager({:open_room, self()}, state)
 
     %{state | looking_for_players: true}
   end
@@ -51,8 +51,8 @@ defmodule Jinks.Game do
 
   defp report_event(state, event) do
     case state.behavior_state.__struct__.handle_event(event, state) do
-      {:change_behavior, new_game_behavior, new_state} ->
-        {:ok, change_game_behavior(new_state, new_game_behavior)}
+      {:change_behavior, new_room_behavior, new_state} ->
+        {:ok, change_room_behavior(new_state, new_room_behavior)}
 
       {:keep_behavior, state} ->
         {:ok, state}
@@ -62,7 +62,7 @@ defmodule Jinks.Game do
     end
   end
 
-  defp change_game_behavior(state, behavior) do
+  defp change_room_behavior(state, behavior) do
     {state, behavior_state} = behavior.init(state)
 
     new_state = %{state | behavior_state: behavior_state}
@@ -72,7 +72,7 @@ defmodule Jinks.Game do
 
   @impl true
   def init(init_state) do
-    state = change_game_behavior(init_state, Jinks.GameBehavior.Lobby)
+    state = change_room_behavior(init_state, Jinks.RoomBehavior.Lobby)
 
     {:ok, state}
   end

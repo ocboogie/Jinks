@@ -1,13 +1,13 @@
-defmodule Jinks.GamePool do
+defmodule Jinks.RoomPool do
   use DynamicSupervisor
-  alias Jinks.Game
+  alias Jinks.Room
 
   def start_link(arg) do
     DynamicSupervisor.start_link(__MODULE__, arg, name: __MODULE__)
   end
 
-  def start_game(manager_pid \\ nil) do
-    DynamicSupervisor.start_child(__MODULE__, {Game, %Game.State{manager_pid: manager_pid}})
+  def start_room(manager_pid \\ nil) do
+    DynamicSupervisor.start_child(__MODULE__, {Room, %Room.State{manager_pid: manager_pid}})
   end
 
   @impl true

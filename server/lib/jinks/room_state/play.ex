@@ -1,7 +1,7 @@
-defmodule Jinks.GameBehavior.Play do
-  alias Jinks.Game
-  alias Jinks.GameBehavior
-  @behaviour GameBehavior
+defmodule Jinks.RoomBehavior.Play do
+  alias Jinks.Room
+  alias Jinks.RoomBehavior
+  @behaviour RoomBehavior
 
   defmodule PlayerInfo do
     # TODO: Remove score no need
@@ -32,7 +32,7 @@ defmodule Jinks.GameBehavior.Play do
         Jinks.WordList.pick()
       end
 
-    Game.broadcast_to_players(
+    Room.broadcast_to_players(
       {:round_finished, %{players_words: players_words, won: won, new_word: new_word}},
       state
     )
@@ -53,7 +53,7 @@ defmodule Jinks.GameBehavior.Play do
     )
   end
 
-  @impl GameBehavior
+  @impl RoomBehavior
   def init(state) do
     player_info =
       Enum.map(state.players, fn player -> {player.id, %PlayerInfo{}} end)
@@ -61,12 +61,12 @@ defmodule Jinks.GameBehavior.Play do
 
     play_state = %__MODULE__{player_info: player_info}
 
-    Game.broadcast_to_players({:game_started, play_state.current_word}, state)
+    Room.broadcast_to_players({:room_started, play_state.current_word}, state)
 
-    {Game.close_game(state), play_state}
+    {Room.close_room(state), play_state}
   end
 
-  @impl GameBehavior
+  @impl RoomBehavior
   def handle_event({:player_left, _player}, state) do
     if length(state.players) < 2 do
       {:stop, state}
@@ -75,7 +75,7 @@ defmodule Jinks.GameBehavior.Play do
     end
   end
 
-  @impl GameBehavior
+  @impl RoomBehavior
   def handle_event({:player_chose_word, player_id, word}, state) do
     state =
       update_in(state.behavior_state.player_info[player_id], fn player_info ->
@@ -88,7 +88,7 @@ defmodule Jinks.GameBehavior.Play do
       round_finished(state)
     else
       # TODO: Change the message from a 3 tuple to a 2 tuple with a map
-      Game.broadcast_to_players({:player_chose_word, player_id, word}, state)
+      Room.broadcast_to_players({:player_chose_word, player_id, word}, state)
       state
     end
 
