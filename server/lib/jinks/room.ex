@@ -7,7 +7,7 @@ defmodule Jinks.Room do
     typedstruct do
       field(:players, list(Jink.Player.t()), default: [])
       field(:manager_pid, pid)
-      field(:looking_for_players, boolean())
+      field(:full, boolean())
       field(:behavior_state, term())
     end
   end
@@ -30,17 +30,16 @@ defmodule Jinks.Room do
     end)
   end
 
-  # TODO: Come up with a better name
-  def close_room(state) do
-    report_to_manager({:close_room, self()}, state)
+  def full(state) do
+    report_to_manager({:room_full, self()}, state)
 
-    %{state | looking_for_players: false}
+    %{state | full: true}
   end
 
-  def open_room(state) do
-    report_to_manager({:open_room, self()}, state)
+  def looking_for_players(state) do
+    report_to_manager({:looking_for_players, self()}, state)
 
-    %{state | looking_for_players: true}
+    %{state | full: false}
   end
 
   defp report_to_manager(message, state) do

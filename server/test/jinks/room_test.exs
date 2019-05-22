@@ -37,9 +37,9 @@ defmodule Jinks.RoomTest do
 
     Process.exit(player2_pid, :kill)
 
-    assert_receive {:"$gen_cast", {:open_room, room_pid}}
-    assert_receive {:"$gen_cast", {:close_room, room_pid}}
-    assert_receive {:"$gen_cast", {:open_room, room_pid}}
+    assert_receive {:"$gen_cast", {:looking_for_players, room_pid}}
+    assert_receive {:"$gen_cast", {:room_full, room_pid}}
+    assert_receive {:"$gen_cast", {:looking_for_players, room_pid}}
   end
 
   test "Broadcast room starting", %{room_pid: room_pid} = _context do

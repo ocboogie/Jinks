@@ -7,7 +7,7 @@ defmodule Jinks.RoomBehavior.Lobby do
 
   @impl RoomBehavior
   def init(state) do
-    {Room.open_room(state), %__MODULE__{}}
+    {Room.looking_for_players(state), %__MODULE__{}}
   end
 
   @impl RoomBehavior

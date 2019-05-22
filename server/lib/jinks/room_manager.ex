@@ -39,7 +39,7 @@ defmodule Jinks.RoomManager do
   def handle_call(:find_available_room, _from, state) do
     pid =
       Map.values(state.rooms)
-      |> Enum.find_value(fn room -> room.open && !room.private && room.pid end)
+      |> Enum.find_value(fn room -> !room.full && !room.private && room.pid end)
 
     # FIXME: Return room
     {:reply, pid, state}
@@ -57,15 +57,15 @@ defmodule Jinks.RoomManager do
   end
 
   @impl true
-  def handle_cast({:open_room, room_pid}, state) do
-    state = update_room(state, room_pid, fn room -> Map.put(room, :open, true) end)
+  def handle_cast({:room_full, room_pid}, state) do
+    state = update_room(state, room_pid, fn room -> Map.put(room, :full, true) end)
 
     {:noreply, state}
   end
 
   @impl true
-  def handle_cast({:close_room, room_pid}, state) do
-    state = update_room(state, room_pid, fn room -> Map.put(room, :open, false) end)
+  def handle_cast({:looking_for_players, room_pid}, state) do
+    state = update_room(state, room_pid, fn room -> Map.put(room, :full, false) end)
 
     {:noreply, state}
   end

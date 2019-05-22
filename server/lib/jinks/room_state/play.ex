@@ -63,7 +63,7 @@ defmodule Jinks.RoomBehavior.Play do
 
     Room.broadcast_to_players({:room_started, play_state.current_word}, state)
 
-    {Room.close_room(state), play_state}
+    {Room.full(state), play_state}
   end
 
   @impl RoomBehavior

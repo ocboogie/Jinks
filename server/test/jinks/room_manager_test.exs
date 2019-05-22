@@ -27,9 +27,9 @@ defmodule Jinks.RoomManagerTest do
 
     assert RoomManager.find_available_room() == nil
 
-    open_room_pid = RoomManager.create_room()
+    room_pid = RoomManager.create_room()
 
-    assert open_room_pid == RoomManager.find_available_room()
+    assert room_pid == RoomManager.find_available_room()
   end
 
   test "Matchmakes available rooms, if none create one" do
