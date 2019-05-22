@@ -25,6 +25,8 @@ defmodule Jinks.GameManagerTest do
     Game.player_join(closed_game_pid, Player.new("1", player1_pid))
     Game.player_join(closed_game_pid, Player.new("2", player1_pid))
 
+    assert GameManager.find_available_game() == nil
+
     open_game_pid = GameManager.create_game()
 
     assert open_game_pid == GameManager.find_available_game()
