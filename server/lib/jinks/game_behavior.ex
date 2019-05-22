@@ -5,7 +5,9 @@ defmodule Jinks.GameBehavior do
   @callback init(GameState.t()) :: {GameState.t(), term()}
 
   @type handle_event_return ::
-          {:keep_behavior, GameState.t()} | {:change_behavior, module(), GameState.t()}
+          {:keep_behavior, GameState.t()}
+          | {:change_behavior, module(), GameState.t()}
+          | {:stop, GameState.t()}
 
   @callback handle_event({:player_left, Player.t()}, GameState.t()) :: handle_event_return
   @callback handle_event({:player_join, Player.t()}, GameState.t()) :: handle_event_return

@@ -69,8 +69,7 @@ defmodule Jinks.GameBehavior.Play do
   @impl GameBehavior
   def handle_event({:player_left, _player}, state) do
     if length(state.players) < 2 do
-      Game.broadcast_to_players(:game_stopped, state)
-      {:change_behavior, Jinks.GameBehavior.Lobby, state}
+      {:stop, state}
     else
       {:keep_behavior, state}
     end

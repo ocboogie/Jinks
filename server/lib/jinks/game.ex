@@ -52,10 +52,13 @@ defmodule Jinks.Game do
   defp report_event(state, event) do
     case state.behavior_state.__struct__.handle_event(event, state) do
       {:change_behavior, new_game_behavior, new_state} ->
-        change_game_behavior(new_state, new_game_behavior)
+        {:ok, change_game_behavior(new_state, new_game_behavior)}
 
       {:keep_behavior, state} ->
-        state
+        {:ok, state}
+
+      {:stop, state} ->
+        {:stop, state}
     end
   end
 
@@ -80,16 +83,20 @@ defmodule Jinks.Game do
 
     player = Map.put(player, :ref, ref)
 
-    state =
-      %{state | players: [player | state.players]}
-      |> report_event({:player_join, player})
+    state = %{state | players: [player | state.players]}
 
-    {:reply, player, state}
+    case report_event(state, {:player_join, player}) do
+      {:ok, state} -> {:reply, player, state}
+      {:stop, state} -> {:stop, :normal, state}
+    end
   end
 
   @impl true
   def handle_cast(unknown, state) do
-    {:noreply, report_event(state, unknown)}
+    case report_event(state, unknown) do
+      {:ok, state} -> {:noreply, state}
+      {:stop, state} -> {:stop, :normal, state}
+    end
   end
 
   @impl true
@@ -101,7 +108,10 @@ defmodule Jinks.Game do
     if length(state.players) <= 0 do
       {:stop, :normal, state}
     else
-      {:noreply, report_event(state, {:player_left, player})}
+      case report_event(state, {:player_left, player}) do
+        {:ok, state} -> {:reply, player, state}
+        {:stop, state} -> {:stop, :normal, state}
+      end
     end
   end
 end
