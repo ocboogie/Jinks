@@ -96,8 +96,6 @@ defmodule Jinks.Game do
   def handle_info({:DOWN, ref, :process, _object, _reason}, state) do
     player = Enum.find(state.players, &(&1.ref == ref))
 
-    broadcast_to_players({:player_left, player}, state)
-
     state = %{state | players: List.delete(state.players, player)}
 
     if length(state.players) <= 0 do

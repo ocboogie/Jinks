@@ -10,7 +10,7 @@ defmodule Jinks.GameTest do
     %{game_pid: pid}
   end
 
-  test "Broadcast players leaving", %{game_pid: game_pid} = _context do
+  test "Broadcast when the game stops (back to lobby)", %{game_pid: game_pid} = _context do
     player1_pid = self()
     player2_pid = spawn(fn -> Process.sleep(:infinity) end)
 
@@ -22,7 +22,7 @@ defmodule Jinks.GameTest do
 
     Process.exit(player2_pid, :kill)
 
-    assert_receive {:"$gen_cast", {:player_left, player2}}
+    assert_receive {:"$gen_cast", :game_stopped}
   end
 
   test "Games should stop when last player leaves", %{game_pid: game_pid} = _context do
