@@ -5,13 +5,19 @@ defmodule Jinks.Application do
 
   use Application
 
+  @impl true
   def start(_type, _args) do
-    # List all child processes to be supervised
     children = [
-      # Start the endpoint when the application starts
-      JinksWeb.Endpoint
-      # Starts a worker by calling: Jinks.Worker.start_link(arg)
+      JinksWeb.Telemetry,
+      {DNSCluster, query: Application.get_env(:jinks, :dns_cluster_query) || :ignore},
+      {Phoenix.PubSub, name: Jinks.PubSub},
+      Jinks.RoomManager,
+      Jinks.RoomPool,
+
+      # Start a worker by calling: Jinks.Worker.start_link(arg)
       # {Jinks.Worker, arg},
+      # Start to serve requests, typically the last entry
+      JinksWeb.Endpoint
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
@@ -22,6 +28,7 @@ defmodule Jinks.Application do
 
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
+  @impl true
   def config_change(changed, _new, removed) do
     JinksWeb.Endpoint.config_change(changed, removed)
     :ok

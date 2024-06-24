@@ -1,6 +1,20 @@
 defmodule JinksWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :jinks
 
+  # The session will be stored in the cookie and signed,
+  # this means its contents can be read but not tampered with.
+  # Set :encryption_salt if you would also like to encrypt it.
+  @session_options [
+    store: :cookie,
+    key: "_jinks_key",
+    signing_salt: "6zLQGpC7",
+    same_site: "Lax"
+  ]
+
+  socket "/live", Phoenix.LiveView.Socket,
+    websocket: [connect_info: [session: @session_options]],
+    longpoll: [connect_info: [session: @session_options]]
+
   socket "/socket", JinksWeb.UserSocket,
     websocket: true,
     longpoll: false
@@ -13,7 +27,7 @@ defmodule JinksWeb.Endpoint do
     at: "/",
     from: :jinks,
     gzip: false,
-    only: ~w(css fonts images js favicon.ico robots.txt)
+    only: JinksWeb.static_paths()
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
@@ -21,8 +35,12 @@ defmodule JinksWeb.Endpoint do
     plug Phoenix.CodeReloader
   end
 
+  plug Phoenix.LiveDashboard.RequestLogger,
+    param_key: "request_logger",
+    cookie_key: "request_logger"
+
   plug Plug.RequestId
-  plug Plug.Logger
+  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
@@ -31,14 +49,6 @@ defmodule JinksWeb.Endpoint do
 
   plug Plug.MethodOverride
   plug Plug.Head
-
-  # The session will be stored in the cookie and signed,
-  # this means its contents can be read but not tampered with.
-  # Set :encryption_salt if you would also like to encrypt it.
-  plug Plug.Session,
-    store: :cookie,
-    key: "_jinks_key",
-    signing_salt: "sjf3ZVbe"
-
+  plug Plug.Session, @session_options
   plug JinksWeb.Router
 end

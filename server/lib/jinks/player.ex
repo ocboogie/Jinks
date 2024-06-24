@@ -7,7 +7,7 @@ defmodule Jinks.Player do
     field(:pid, pid)
   end
 
-  def new(name, pid \\ nil) do
-    %__MODULE__{name: name, pid: pid, id: :erlang.unique_integer()}
+  def new(id, name, pid \\ nil) do
+    %__MODULE__{name: name, pid: pid, id: id}
   end
 end

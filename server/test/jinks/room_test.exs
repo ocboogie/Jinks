@@ -49,7 +49,7 @@ defmodule Jinks.RoomTest do
     Room.player_join(room_pid, player1)
     Room.player_join(room_pid, player2)
 
-    assert_receive {:"$gen_cast", {:room_started, _starting_word}}
+    assert_receive {:"$gen_cast", {:game_started, _starting_word}}
   end
 
   test "broadcast when a player chooses a word", %{room_pid: room_pid} = _context do

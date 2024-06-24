@@ -1,18 +1,25 @@
 defmodule Jinks.Room do
   use GenServer
 
+  @id_length 16
+
   defmodule State do
     use TypedStruct
 
     typedstruct do
       field(:players, list(Jink.Player.t()), default: [])
       field(:manager_pid, pid)
+      field(:id, String.t())
       field(:full, boolean())
-      field(:behavior_state, term())
+      field(:stage_state, term())
     end
   end
 
-  def start_link(init_state \\ %State{}) do
+  def generate_id() do
+    :crypto.strong_rand_bytes(@id_length) |> Base.url_encode64() |> binary_part(0, @id_length)
+  end
+
+  def start_link(init_state \\ %State{id: generate_id()}) do
     GenServer.start_link(__MODULE__, init_state)
   end
 
@@ -31,29 +38,29 @@ defmodule Jinks.Room do
   end
 
   def full(state) do
-    report_to_manager({:room_full, self()}, state)
+    report_to_manager(:room_full, state)
 
     %{state | full: true}
   end
 
   def looking_for_players(state) do
-    report_to_manager({:looking_for_players, self()}, state)
+    report_to_manager(:looking_for_players, state)
 
     %{state | full: false}
   end
 
   defp report_to_manager(message, state) do
     if Map.has_key?(state, :manager_pid) do
-      GenServer.cast(state.manager_pid, message)
+      GenServer.cast(state.manager_pid, {state.id, message})
     end
   end
 
   defp report_event(state, event) do
-    case state.behavior_state.__struct__.handle_event(event, state) do
-      {:change_behavior, new_room_behavior, new_state} ->
-        {:ok, change_room_behavior(new_state, new_room_behavior)}
+    case state.stage_state.__struct__.handle_event(event, state) do
+      {:change_stage, new_room_stage, new_state} ->
+        {:ok, change_room_stage(new_state, new_room_stage)}
 
-      {:keep_behavior, state} ->
+      {:keep_stage, state} ->
         {:ok, state}
 
       {:stop, state} ->
@@ -61,17 +68,19 @@ defmodule Jinks.Room do
     end
   end
 
-  defp change_room_behavior(state, behavior) do
-    {state, behavior_state} = behavior.init(state)
+  defp change_room_stage(state, stage) do
+    {state, stage_state} = stage.init(state)
 
-    new_state = %{state | behavior_state: behavior_state}
+    new_state = %{state | stage_state: stage_state}
 
     new_state
   end
 
   @impl true
   def init(init_state) do
-    state = change_room_behavior(init_state, Jinks.RoomBehavior.Lobby)
+    state = change_room_stage(init_state, Jinks.RoomStage.Lobby)
+
+    schedule_timeout()
 
     {:ok, state}
   end
@@ -112,5 +121,15 @@ defmodule Jinks.Room do
         {:stop, state} -> {:stop, :normal, state}
       end
     end
+  end
+
+  @impl true
+  def handle_info(:timeout, state) do
+    {:stop, :normal, state}
+  end
+
+  defp schedule_timeout do
+    # 25 seconds
+    Process.send_after(self(), :timeout, 25 * 1000)
   end
 end

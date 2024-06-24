@@ -1,12 +1,14 @@
-defmodule Jinks.RoomBehavior do
+defmodule Jinks.RoomStage do
   alias Jinks.Player
   alias Jinks.Room.State, as: RoomState
 
   @callback init(RoomState.t()) :: {RoomState.t(), term()}
 
+  @callback identifier() :: String.t()
+
   @type handle_event_return ::
-          {:keep_behavior, RoomState.t()}
-          | {:change_behavior, module(), RoomState.t()}
+          {:keep_stage, RoomState.t()}
+          | {:change_stage, module(), RoomState.t()}
           | {:stop, RoomState.t()}
 
   @callback handle_event({:player_left, Player.t()}, RoomState.t()) :: handle_event_return
