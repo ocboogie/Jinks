@@ -13,14 +13,18 @@ defmodule JinksWeb.RoomChannel do
       room_pid ->
         player = %Player{name: name, pid: socket.channel_pid, id: socket.assigns.id}
 
-        ref = Process.monitor(room_pid)
+        case Room.player_join(room_pid, player) do
+          :ok ->
+            ref = Process.monitor(room_pid)
 
-        Room.player_join(room_pid, player)
+            {:ok, player,
+             socket
+             |> assign(:room_pid, room_pid)
+             |> assign(:room_ref, ref)}
 
-        {:ok, room_id,
-         socket
-         |> assign(:room_pid, room_pid)
-         |> assign(:room_ref, ref)}
+          {:error, reason} ->
+            {:error, %{reason: reason}}
+        end
     end
   end
 
@@ -34,23 +38,22 @@ defmodule JinksWeb.RoomChannel do
   end
 
   @impl true
-  def handle_cast({:game_started, word}, socket) do
-    push(socket, "new_message", %{"word" => word})
+  def handle_cast({:room_update, state}, socket) do
+    push(socket, "room_update", state)
     {:noreply, socket}
-  end
-
-  # Channels can be used in a request/response fashion
-  # by sending replies to requests from the client
-  @impl true
-  def handle_in("ping", payload, socket) do
-    {:reply, {:ok, payload}, socket}
   end
 
   # It is also common to receive messages from the client and
   # broadcast to everyone in the current topic (room:lobby).
   @impl true
-  def handle_in("shout", payload, socket) do
-    broadcast(socket, "shout", payload)
+  def handle_in("ready", _payload, socket) do
+    Room.player_ready(socket.assigns.room_pid, socket.assigns.id)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_in("guess", word, socket) do
+    Room.player_guessed(socket.assigns.room_pid, socket.assigns.id, word)
     {:noreply, socket}
   end
 

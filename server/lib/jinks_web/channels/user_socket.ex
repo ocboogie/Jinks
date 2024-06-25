@@ -26,7 +26,7 @@ defmodule JinksWeb.UserSocket do
   # performing token verification on connect.
   @impl true
   def connect(_params, socket, _connect_info) do
-    {:ok, assign(socket, :id, :erlang.unique_integer())}
+    {:ok, assign(socket, :id, Integer.to_string(:erlang.unique_integer()))}
   end
 
   # Socket IDs are topics that allow you to identify all sockets for a given user:
@@ -40,5 +40,5 @@ defmodule JinksWeb.UserSocket do
   #
   # Returning `nil` makes this socket anonymous.
   @impl true
-  def id(_socket), do: nil
+  def id(socket), do: nil
 end

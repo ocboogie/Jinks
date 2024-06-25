@@ -2,10 +2,24 @@
   import { Socket } from "phoenix";
   import { onMount } from "svelte";
   import url from "./lib/url";
+  import Home from "./lib/Home.svelte";
+  import Lobby from "./lib/Lobby.svelte";
+  import Game from "./lib/Game.svelte";
+  import WaitingForPlayers from "./lib/WaitingForPlayers.svelte";
 
+  $: roomId = $url.hash.slice(1) || null;
   let socket;
-  let name = "";
-  $: roomId = $url.hash;
+  let channel;
+  let selfId = 1;
+  let room = null;
+  // let room = {
+  //   game: null,
+  //   players: [
+  //     { id: 1, name: "Player 1" },
+  //     { id: 2, name: "Player 2" },
+  //   ],
+  //   ready: [2],
+  // };
 
   onMount(() => {
     socket = new Socket("ws://localhost:4000/socket", { timeout: 3000 });
@@ -13,14 +27,15 @@
     socket.connect();
   });
 
-  async function matchMake() {
+  async function matchMake(name) {
     const res = await fetch("/api");
     const roomId = await res.json();
 
-    joinRoom(roomId);
+    joinRoom(roomId, name);
   }
 
-  function roomJoined(id) {
+  function roomJoined(id, playerId) {
+    selfId = playerId;
     roomId = id;
 
     window.history.pushState({}, "", `#${id}`);
@@ -28,41 +43,48 @@
     console.log("Joined room", id);
   }
 
-  function joinRoom(roomId) {
-    const channel = socket.channel(`room:${roomId}`, { name });
+  function joinRoom(roomId, name) {
+    channel = socket.channel(`room:${roomId}`, { name });
 
-    channel.on("new_message", (payload) => {
-      console.log(payload);
+    channel.on("room_update", (updatedRoom) => {
+      room = updatedRoom;
+      console.log("room_update", room);
     });
 
     channel
       .join()
-      .receive("ok", (room_id) => roomJoined(room_id))
+      .receive("ok", ({ id: selfId }) => roomJoined(roomId, selfId))
       .receive("error", ({ reason }) => console.log("failed join", reason))
       .receive("timeout", () =>
         console.log("Networking issue. Still waiting..."),
       );
   }
+
+  function leave() {
+    channel.leave();
+
+    window.history.replaceState({}, "", "/");
+    room = null;
+  }
+
+  function ready() {
+    channel.push("ready");
+  }
+
+  function guess(event) {
+    channel.push("guess", event.detail);
+  }
 </script>
 
 <main class="flex flex-col gap-6 justify-center items-center w-full h-screen">
-  <h1 class="text-5xl font-light text-zinc-800">Jinks</h1>
-  <form
-    class="flex flex-col gap-6 justify-center items-center"
-    on:submit|preventDefault={matchMake}
-  >
-    <input
-      bind:value={name}
-      type="text"
-      placeholder="Name"
-      class="block p-2 w-48 text-lg text-center border-b border-gray-300 outline-none"
+  {#if !room}
+    <Home
+      on:matchMake={({ detail }) => matchMake(detail.name)}
+      on:joinRoom={({ detail }) => joinRoom(detail.roomId, detail.name)}
     />
-
-    <!-- Rounded start button with a big shadow -->
-    <input
-      type="submit"
-      class="block py-3 px-6 text-lg font-light tracking-wide text-black rounded-md shadow-lg cursor-pointer drop-shadow-lg"
-      value="Start"
-    />
-  </form>
+  {:else if room.players.length === 1}
+    <WaitingForPlayers on:cancel={leave} />
+  {:else}
+    <Lobby {selfId} {room} on:ready={ready} on:guess={guess} />
+  {/if}
 </main>

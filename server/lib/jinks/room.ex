@@ -1,18 +1,34 @@
 defmodule Jinks.Room do
+  require Logger
   use GenServer
 
   @id_length 16
 
   defmodule State do
-    use TypedStruct
-
-    typedstruct do
-      field(:players, list(Jink.Player.t()), default: [])
-      field(:manager_pid, pid)
-      field(:id, String.t())
-      field(:full, boolean())
-      field(:stage_state, term())
+    defimpl Jason.Encoder, for: [MapSet, Range, Stream] do
+      def encode(struct, opts) do
+        Jason.Encode.list(Enum.to_list(struct), opts)
+      end
     end
+
+    defmodule Game do
+      defimpl Jason.Encoder, for: Game do
+        def encode(game, opts) do
+          Jason.Encode.map(
+            %{
+              guesses: game.guesses,
+              ready:  Map.keys(game.current_guesses)
+            },
+            opts
+          )
+        end
+      end
+
+      defstruct guesses: [], current_guesses: %{}
+    end
+
+    @derive {Jason.Encoder, only: [:players, :id, :ready, :game]}
+    defstruct players: [], manager_pid: nil, id: nil, ready: %MapSet{}, game: nil
   end
 
   def generate_id() do
@@ -27,26 +43,22 @@ defmodule Jinks.Room do
     GenServer.call(pid, {:player_join, player})
   end
 
-  def player_chose_word(pid, player_id, word) do
-    GenServer.cast(pid, {:player_chose_word, player_id, word})
+  def player_ready(pid, player_id) do
+    GenServer.cast(pid, {:player_ready, player_id})
   end
 
-  def broadcast_to_players(message, state) do
+  def player_guessed(pid, player_id, word) do
+    GenServer.cast(pid, {:player_guessed, player_id, word})
+  end
+
+  def broadcast_update(state) do
     Enum.each(state.players, fn player ->
-      GenServer.cast(player.pid, message)
+      GenServer.cast(player.pid, {:room_update, state})
     end)
   end
 
-  def full(state) do
-    report_to_manager(:room_full, state)
-
-    %{state | full: true}
-  end
-
-  def looking_for_players(state) do
-    report_to_manager(:looking_for_players, state)
-
-    %{state | full: false}
+  def full?(state) do
+    length(state.players) >= 2
   end
 
   defp report_to_manager(message, state) do
@@ -55,77 +67,111 @@ defmodule Jinks.Room do
     end
   end
 
-  defp report_event(state, event) do
-    case state.stage_state.__struct__.handle_event(event, state) do
-      {:change_stage, new_room_stage, new_state} ->
-        {:ok, change_room_stage(new_state, new_room_stage)}
+  defp start_game(state) do
+    state = %{state | ready: %MapSet{}, game: %State.Game{}}
+    broadcast_update(state)
 
-      {:keep_stage, state} ->
-        {:ok, state}
-
-      {:stop, state} ->
-        {:stop, state}
-    end
+    state
   end
 
-  defp change_room_stage(state, stage) do
-    {state, stage_state} = stage.init(state)
-
-    new_state = %{state | stage_state: stage_state}
-
-    new_state
+  defp reset(state) do
+    report_to_manager(:looking_for_players, state)
+    state = %{state | ready: %MapSet{}}
+    broadcast_update(state)
+    # TODO: Delete game state
   end
 
   @impl true
   def init(init_state) do
-    state = change_room_stage(init_state, Jinks.RoomStage.Lobby)
+    if !full?(init_state) do
+      report_to_manager(:looking_for_players, init_state)
+    end
 
     schedule_timeout()
 
-    {:ok, state}
+    {:ok, init_state}
   end
 
   @impl true
   def handle_call({:player_join, player}, _from, state) do
-    ref = Process.monitor(player.pid)
+    if full?(state) do
+      {:reply, {:error, :room_full}, state}
+    else
+      ref = Process.monitor(player.pid)
 
-    player = Map.put(player, :ref, ref)
+      player = Map.put(player, :ref, ref)
 
-    state = %{state | players: [player | state.players]}
+      state = %{state | players: [player | state.players]}
 
-    case report_event(state, {:player_join, player}) do
-      {:ok, state} -> {:reply, player, state}
-      {:stop, state} -> {:stop, :normal, state}
+      if full?(state) do
+        report_to_manager(:room_full, state)
+      end
+
+      broadcast_update(state)
+
+      {:reply, :ok, state}
     end
   end
 
   @impl true
-  def handle_cast(unknown, state) do
-    case report_event(state, unknown) do
-      {:ok, state} -> {:noreply, state}
-      {:stop, state} -> {:stop, :normal, state}
+  def handle_cast({:player_ready, player_id}, state) do
+    ready = MapSet.put(state.ready, player_id)
+
+    if MapSet.size(ready) == length(state.players) do
+      {:noreply, start_game(state)}
+    else
+      state = %{state | ready: ready}
+
+      broadcast_update(state)
+
+      {:noreply, state}
     end
+  end
+
+  @impl true
+  def handle_cast({:player_guessed, player_id, word}, state) do
+    state = update_in(state.game.current_guesses, &(Map.put(&1, player_id, word)))
+
+    state = if map_size(state.game.current_guesses) == length(state.players) do
+      guesses = [state.game.current_guesses | state.game.guesses]
+
+      %{state | game: %{state.game | guesses: guesses, current_guesses: %{}}}
+    else
+      state
+    end
+
+    broadcast_update(state)
+
+    {:noreply, state}
   end
 
   @impl true
   def handle_info({:DOWN, ref, :process, _object, _reason}, state) do
     player = Enum.find(state.players, &(&1.ref == ref))
 
+    was_full = full?(state)
+
     state = %{state | players: List.delete(state.players, player)}
 
     if length(state.players) <= 0 do
       {:stop, :normal, state}
     else
-      case report_event(state, {:player_left, player}) do
-        {:ok, state} -> {:reply, player, state}
-        {:stop, state} -> {:stop, :normal, state}
+      if was_full do
+        report_to_manager(:looking_for_players, state)
       end
+
+      {:noreply, reset(state)}
     end
   end
 
   @impl true
   def handle_info(:timeout, state) do
-    {:stop, :normal, state}
+    if length(state.players) == 0 do
+      Logger.warning("Room #{state.id} timed out with no players")
+      {:stop, :normal, state}
+    else
+      {:noreply, state}
+    end
   end
 
   defp schedule_timeout do
