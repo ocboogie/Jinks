@@ -5,6 +5,8 @@
   export let name;
   export let guesses = [];
 
+  export let lastGuess;
+
   let guessContainer;
   let guessElems = [];
   let slotContainer;
@@ -20,6 +22,10 @@
     } else {
       return guessElems;
     }
+  }
+
+  $: {
+    lastGuess = guessElems[guessElems.length - 1];
   }
 
   function updateItems() {
@@ -54,12 +60,6 @@
     });
   }
 
-  // function scrollTo(node) {
-  //   node.scrollIntoView({
-  //     behavior: "smooth",
-  //   });
-  // }
-
   afterUpdate(() => {
     updateItems();
   });
@@ -77,7 +77,7 @@
   }
 </script>
 
-<div class="flex" class:flex-row-reverse={right}>
+<div class="flex {$$props.class}" class:flex-row-reverse={right}>
   <div
     class="flex justify-center items-center py-6 px-3 text-xl"
     class:border-r={!right}
@@ -88,10 +88,12 @@
   <div
     class:pl-3={!right}
     class:pr-3={right}
-    class="flex relative justify-center items-center"
+    class:justify-end={right}
+    class:justify-start={!right}
+    class="flex relative flex-1"
   >
     <div
-      class="overflow-y-auto"
+      class="overflow-y-auto flex-1"
       style="{right
         ? 'direction: rtl;'
         : ''} max-height: {guessContainerHeight}px"
