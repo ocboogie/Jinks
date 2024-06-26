@@ -1,14 +1,12 @@
 defmodule Jinks.RoomManagerTest do
   use ExUnit.Case
   alias Jinks.RoomManager
-  alias Jinks.RoomPool
   alias Jinks.Room
   alias Jinks.Player
   doctest Jinks
 
   setup do
     start_supervised!({RoomManager, %RoomManager.State{}})
-    start_supervised!(RoomPool)
     :ok
   end
 

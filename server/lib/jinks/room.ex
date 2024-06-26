@@ -36,6 +36,8 @@ defmodule Jinks.Room do
   end
 
   def start_link(init_state \\ %State{id: generate_id()}) do
+    Logger.info "Starting room #{init_state.id}"
+
     GenServer.start_link(__MODULE__, init_state)
   end
 
@@ -175,7 +177,7 @@ defmodule Jinks.Room do
   end
 
   defp schedule_timeout do
-    # 25 seconds
-    Process.send_after(self(), :timeout, 25 * 1000)
+    # 5 seconds
+    Process.send_after(self(), :timeout, 5 * 1000)
   end
 end

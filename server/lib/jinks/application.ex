@@ -12,7 +12,6 @@ defmodule Jinks.Application do
       {DNSCluster, query: Application.get_env(:jinks, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Jinks.PubSub},
       Jinks.RoomManager,
-      Jinks.RoomPool,
 
       # Start a worker by calling: Jinks.Worker.start_link(arg)
       # {Jinks.Worker, arg},

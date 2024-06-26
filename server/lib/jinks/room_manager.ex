@@ -1,6 +1,6 @@
 defmodule Jinks.RoomManager do
   use GenServer
-  alias Jinks.RoomPool
+  alias Jinks.Room
 
   defmodule State do
     defstruct rooms: %{}
@@ -50,7 +50,8 @@ defmodule Jinks.RoomManager do
 
   @impl true
   def handle_call(:create_room, _from, state) do
-    {room_id, {:ok, room_pid}} = RoomPool.start_room(self())
+    room_id = Room.generate_id()
+    {:ok, room_pid} = Room.start_link(%Room.State{id: room_id, manager_pid: self()})
 
     ref = Process.monitor(room_pid)
 
@@ -86,7 +87,13 @@ defmodule Jinks.RoomManager do
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _object, _reason}, state) do
+  def handle_info({:DOWN, ref, :process, _object, reason}, state) do
+    room = Enum.find(state.rooms, fn {_, room} -> room.ref == ref end)
+
+    if reason != :normal and room do
+      Logger.error "Room #{inspect(room)} went down: #{inspect(reason)}"
+    end
+
     rooms =
       Enum.reject(state.rooms, fn {_, room} -> room.ref == ref end)
       |> Map.new()
