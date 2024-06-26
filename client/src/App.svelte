@@ -6,6 +6,7 @@
   import Lobby from "./lib/Lobby.svelte";
   import Game from "./lib/Game.svelte";
   import WaitingForPlayers from "./lib/WaitingForPlayers.svelte";
+  import PlayerSide from "./lib/PlayerSide.svelte";
 
   $: roomId = $url.hash.slice(1) || null;
   let socket;
@@ -13,12 +14,19 @@
   let selfId = 1;
   let room = null;
   // let room = {
-  //   game: null,
+  //   game: {
+  //     guesses: [
+  //       { "1": "Rock 1", "2": "Paper 1" },
+  //       { "1": "Rock 2", "2": "Paper 2" },
+  //       { "1": "Rock 3", "2": "Paper 3" },
+  //     ],
+  //     ready: ["2"],
+  //   },
   //   players: [
-  //     { id: 1, name: "Player 1" },
-  //     { id: 2, name: "Player 2" },
+  //     { id: "1", name: "Player 1" },
+  //     { id: "2", name: "Player 2" },
   //   ],
-  //   ready: [2],
+  //   ready: ["1"],
   // };
 
   onMount(() => {
@@ -54,7 +62,10 @@
     channel
       .join()
       .receive("ok", ({ id: selfId }) => roomJoined(roomId, selfId))
-      .receive("error", ({ reason }) => console.log("failed join", reason))
+      .receive("error", ({ reason }) => {
+        console.log("failed join", reason);
+        window.history.replaceState({}, "", "/");
+      })
       .receive("timeout", () =>
         console.log("Networking issue. Still waiting..."),
       );
@@ -84,7 +95,9 @@
     />
   {:else if room.players.length === 1}
     <WaitingForPlayers on:cancel={leave} />
+  {:else if !room.game}
+    <Lobby {selfId} {room} on:ready={ready} />
   {:else}
-    <Lobby {selfId} {room} on:ready={ready} on:guess={guess} />
+    <Game {selfId} {room} on:guess={guess} />
   {/if}
 </main>
