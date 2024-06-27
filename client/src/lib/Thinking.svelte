@@ -1,4 +1,4 @@
-<div class="flex gap-2 mt-2">
+<div class="flex gap-2 mt-2 {$$props.class}">
   <div class="bg-current rounded-full size-2 animate-[thinking_1s_infinite]" />
   <div
     class="bg-current rounded-full size-2 animate-[thinking_1s_0.15s_infinite]"

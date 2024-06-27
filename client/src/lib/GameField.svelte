@@ -5,7 +5,7 @@
   import { tick } from "svelte";
 
   const wrongAnimationDuration = 1500;
-  const winAnimationDuration = [500, 600, 500];
+  export const winAnimationDuration = [500, 600, 500];
 
   export let leftName;
   export let rightName;
@@ -13,10 +13,9 @@
   export let rightHistory;
   export let leftReady;
   export let rightReady;
+  export let win;
 
   let wrongAnimation = false;
-
-  let winAnimation = false;
 
   let winTarget;
 
@@ -44,9 +43,11 @@
     }, wrongAnimationDuration);
   }
 
-  export function playWinAnimation() {
-    winAnimation = true;
+  $: if (win) {
+    playWinAnimation();
+  }
 
+  export function playWinAnimation() {
     tick().then(() => {
       leftSide.scrollToBottom();
       rightSide.scrollToBottom();
@@ -121,7 +122,7 @@
           clip-rule="evenodd"
         />
       </svg>
-    {:else if !wrongAnimation && !winAnimation}
+    {:else if !wrongAnimation && !win}
       <div class="my-6">
         <Thinking />
       </div>
@@ -146,7 +147,7 @@
     </svg>
   {/if}
 
-  {#if winAnimation}
+  {#if win}
     <div class="flex relative justify-center items-center">
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -193,7 +194,7 @@
           clip-rule="evenodd"
         />
       </svg>
-    {:else if !wrongAnimation && !winAnimation}
+    {:else if !wrongAnimation && !win}
       <div class="my-6">
         <Thinking />
       </div>

@@ -1,10 +1,9 @@
 <script>
-  import { fly } from "svelte/transition";
   import { createEventDispatcher } from "svelte";
-  import Thinking from "./Thinking.svelte";
   import { Input, Button } from "./base";
-  import PlayerSide from "./PlayerSide.svelte";
   import GameField from "./GameField.svelte";
+  import { fade } from "svelte/transition";
+  import Thinking from "./Thinking.svelte";
 
   export let selfId;
   export let room;
@@ -25,19 +24,25 @@
   $: meGuessed = room.game?.ready.includes(me.id);
   $: otherPlayerGuessed = room.game?.ready.includes(otherPlayer.id);
 
-  let prevGuessesLenght = 0;
+  let prevGuessesLength = 0;
+
+  $: {
+    meGuesses[0];
+    otherPlayerGuesses[0];
+    console.log(prevGuessesLength, meGuesses.length);
+  }
 
   $: if (
     meGuesses[0] &&
     otherPlayerGuesses[0] &&
-    prevGuessesLenght < meGuesses.length
+    prevGuessesLength < meGuesses.length &&
+    !room.game.won
   ) {
-    prevGuessesLenght = meGuesses.length;
+    prevGuessesLength = meGuesses.length;
 
     if (meGuesses[0] !== otherPlayerGuesses[0]) {
+      console.log("Is playing");
       gameField.playWrongAnimation();
-    } else {
-      gameField.playWinAnimation();
     }
   }
 
@@ -48,6 +53,13 @@
     dispatch("guess", guess);
     guess = "";
   }
+
+  function playAgain() {
+    dispatch("playAgain");
+    guess = "";
+    guessed = "";
+    prevGuessesLength = 0;
+  }
 </script>
 
 <GameField
@@ -57,15 +69,44 @@
   rightHistory={meGuesses}
   leftReady={otherPlayerGuessed}
   rightReady={meGuessed}
+  win={room.game.won}
   bind:this={gameField}
 />
 
 <form
-  class="flex flex-col gap-6 justify-center items-center"
-  class:invisible={meGuessed}
-  on:submit|preventDefault={submitGuess}
+  class="flex relative flex-col gap-6 justify-center items-center"
+  on:submit|preventDefault={room.game.won ? playAgain : submitGuess}
 >
-  <input bind:value={guess} type="text" placeholder="Guess" class={Input} />
+  {#if room.game.won && !room.ready.includes(selfId)}
+    <input
+      class="{Button} absolute"
+      in:fade={{
+        duration: 500,
+        delay: gameField?.winAnimationDuration.reduce(
+          (partialSum, a) => partialSum + a,
+          0,
+        ),
+      }}
+      type="submit"
+      value="Play Again"
+    />
+  {/if}
+  {#if room.game.won && room.ready.includes(selfId)}
+    <Thinking class="absolute" />
+  {/if}
 
-  <input type="submit" class={Button} value="Guess" />
+  <input
+    class:invisible={meGuessed || room.game.won}
+    bind:value={guess}
+    type="text"
+    placeholder="Guess"
+    class={Input}
+  />
+
+  <input
+    class:invisible={meGuessed || room.game.won}
+    type="submit"
+    class={Button}
+    value="Guess"
+  />
 </form>

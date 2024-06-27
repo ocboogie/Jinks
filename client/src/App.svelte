@@ -95,6 +95,10 @@
   function guess(event) {
     channel.push("guess", event.detail);
   }
+
+  function playAgain() {
+    channel.push("ready");
+  }
 </script>
 
 <Toast />
@@ -110,6 +114,6 @@
   {:else if !room.game}
     <Lobby {selfId} {room} on:ready={ready} />
   {:else}
-    <Game {selfId} {room} on:guess={guess} />
+    <Game {selfId} {room} on:guess={guess} on:playAgain={playAgain} />
   {/if}
 </main>

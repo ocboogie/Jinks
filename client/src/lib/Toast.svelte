@@ -5,7 +5,6 @@
     svelteToast.push({
       component: {
         src: ToastInner,
-        sendIdTo: "toastId",
         props: { msg },
       },
     });

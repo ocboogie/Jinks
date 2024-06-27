@@ -17,14 +17,15 @@ defmodule Jinks.Room do
           Jason.Encode.map(
             %{
               guesses: game.guesses,
-              ready:  Map.keys(game.current_guesses)
+              ready:  Map.keys(game.current_guesses),
+              won: game.won
             },
             opts
           )
         end
       end
 
-      defstruct guesses: [], current_guesses: %{}
+      defstruct guesses: [], current_guesses: %{}, won: false
     end
 
     @derive {Jason.Encoder, only: [:players, :id, :ready, :game]}
@@ -141,9 +142,13 @@ defmodule Jinks.Room do
     state = update_in(state.game.current_guesses, &(Map.put(&1, player_id, word)))
 
     state = if map_size(state.game.current_guesses) == length(state.players) do
+      won = Enum.all?(Map.values(state.game.current_guesses), fn word ->
+        word == Enum.at(Map.values(state.game.current_guesses), 0)
+      end)
+
       guesses = [state.game.current_guesses | state.game.guesses]
 
-      %{state | game: %{state.game | guesses: guesses, current_guesses: %{}}}
+      %{state | game: %{state.game | won: won, guesses: guesses, current_guesses: %{}}}
     else
       state
     end

@@ -17,10 +17,12 @@
   let topPadding = 0;
 
   function getItemElems() {
+    const filteredElems = guessElems.filter((elem) => elem);
+
     if (slotContainer && slotContainer.children.length > 0) {
-      return guessElems.concat(slotContainer);
+      return filteredElems.concat(slotContainer);
     } else {
-      return guessElems;
+      return filteredElems;
     }
   }
 
