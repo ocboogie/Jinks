@@ -59,6 +59,12 @@ defmodule Jinks.Room do
     end)
   end
 
+  def broadcast_closure(state, reason) do
+    Enum.each(state.players, fn player ->
+      GenServer.cast(player.pid, {:room_closure, reason})
+    end)
+  end
+
   def full?(state) do
     length(state.players) >= 2
   end
@@ -151,19 +157,12 @@ defmodule Jinks.Room do
   def handle_info({:DOWN, ref, :process, _object, _reason}, state) do
     player = Enum.find(state.players, &(&1.ref == ref))
 
-    was_full = full?(state)
-
     state = %{state | players: List.delete(state.players, player)}
 
-    if length(state.players) <= 0 do
-      {:stop, :normal, state}
-    else
-      if was_full do
-        report_to_manager(:looking_for_players, state)
-      end
+    IO.puts("Player #{player.id} left room #{state.id}")
+    broadcast_closure(state, :player_left)
 
-      {:noreply, reset(state)}
-    end
+    {:stop, :normal, state}
   end
 
   @impl true

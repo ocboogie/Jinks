@@ -8,7 +8,7 @@ defmodule JinksWeb.RoomChannel do
   def join("room:" <> room_id, %{"name" => name}, socket) do
     case RoomManager.get_room(room_id) do
       nil ->
-        {:error, %{reason: "room_not_found"}}
+        {:error, %{reason: "not_found"}}
 
       room_pid ->
         player = %Player{name: name, pid: socket.channel_pid, id: socket.assigns.id}
@@ -40,6 +40,13 @@ defmodule JinksWeb.RoomChannel do
   @impl true
   def handle_cast({:room_update, state}, socket) do
     push(socket, "room_update", state)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_cast({:room_closure, reason}, socket) do
+    push(socket, "room_closed", %{"reason" => reason})
+
     {:noreply, socket}
   end
 

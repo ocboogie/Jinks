@@ -6,28 +6,18 @@
   import Lobby from "./lib/Lobby.svelte";
   import Game from "./lib/Game.svelte";
   import WaitingForPlayers from "./lib/WaitingForPlayers.svelte";
-  import PlayerSide from "./lib/PlayerSide.svelte";
+  import Toast, { toast } from "./lib/Toast.svelte";
 
   $: roomId = $url.hash.slice(1) || null;
   let socket;
   let channel;
   let selfId = 1;
   let room = null;
-  // let room = {
-  //   game: {
-  //     guesses: [
-  //       { "1": "Rock 1", "2": "Paper 1" },
-  //       { "1": "Rock 2", "2": "Paper 2" },
-  //       { "1": "Rock 3", "2": "Paper 3" },
-  //     ],
-  //     ready: ["2"],
-  //   },
-  //   players: [
-  //     { id: "1", name: "Player 1" },
-  //     { id: "2", name: "Player 2" },
-  //   ],
-  //   ready: ["1"],
-  // };
+  let closureReason;
+
+  $: if (!roomId) {
+    room = null;
+  }
 
   onMount(() => {
     socket = new Socket("ws://localhost:4000/socket", { timeout: 3000 });
@@ -52,6 +42,7 @@
   }
 
   function joinRoom(roomId, name) {
+    console.log("join room");
     channel = socket.channel(`room:${roomId}`, { name });
 
     channel.on("room_update", (updatedRoom) => {
@@ -59,16 +50,35 @@
       console.log("room_update", room);
     });
 
+    channel.on("room_closed", ({ reason }) => {
+      if (reason === "player_left") {
+        closureReason = "Player left";
+        toast("Player left");
+        channel.leave();
+      }
+    });
+
+    channel.onClose((reason) => {
+      window.history.replaceState({}, "", "/");
+
+      if (reason !== "leave") {
+        toast("Room closed");
+      }
+    });
+
     channel
       .join()
       .receive("ok", ({ id: selfId }) => roomJoined(roomId, selfId))
       .receive("error", ({ reason }) => {
-        console.log("failed join", reason);
-        window.history.replaceState({}, "", "/");
+        if (reason === "not_found") {
+          toast("Room not found");
+          channel.leave();
+        }
       })
-      .receive("timeout", () =>
-        console.log("Networking issue. Still waiting..."),
-      );
+      .receive("timeout", () => {
+        window.history.replaceState({}, "", "/");
+        toast("Connection timed out");
+      });
   }
 
   function leave() {
@@ -86,6 +96,8 @@
     channel.push("guess", event.detail);
   }
 </script>
+
+<Toast />
 
 <main class="flex flex-col gap-6 justify-center items-center w-full h-screen">
   {#if !room}
